@@ -10,9 +10,6 @@
 (*                                                                           *)
 (*                Contact:   <vincent@encs.concordia.ca>                     *)
 (*                                                                           *)
-(* Last update: Feb 18, 2013 - Added ABBREV_TAC                              *)
-(*              Dec 3, 2012 - Added SUBGOAL_TAC                              *)
-(*                                                                           *)
 (* ========================================================================= *)
 
 
@@ -53,6 +50,7 @@ module Pa :
   sig
     val CONTEXT_TAC : ((string * pretype) list -> tactic) -> tactic
     val PARSE_IN_CONTEXT : (term -> tactic) -> (string -> tactic)
+    val PARSES_IN_CONTEXT : (term list -> tactic) -> (string list -> tactic)
     val EXISTS_TAC : string -> tactic
     val SUBGOAL_THEN : string -> thm_tactic -> tactic
     val SUBGOAL_TAC : string -> string -> tactic list -> tactic
@@ -81,9 +79,11 @@ module Pa :
       let vs = frees c @ freesl (map (concl o snd) asms) in
       ttac (map (fun x -> name_of x,pretype_of_type(type_of x)) vs) g
 
-    let PARSE_IN_CONTEXT ttac s =
+    let PARSES_IN_CONTEXT ttac ss =
       CONTEXT_TAC (fun env ->
-        ttac (term_of_preterm (retypecheck env (parse_preterm s))))
+        ttac (map (term_of_preterm o retypecheck env o parse_preterm) ss))
+
+    let PARSE_IN_CONTEXT tac s = PARSES_IN_CONTEXT (function [t] -> tac t) [s]
 
     let type_of_forall = type_of o fst o dest_forall
 

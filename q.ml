@@ -75,9 +75,14 @@ module Pa :
   struct
     let parse_preterm = fst o parse_preterm o lex o explode
 
+    let CONTEXT_common f hs c x =
+      let vs = freesl (c::hs) in
+      f (map (fun x -> name_of x, pretype_of_type(type_of x)) vs) x
+
     let CONTEXT_TAC ttac (asms,c as g) =
-      let vs = frees c @ freesl (map (concl o snd) asms) in
-      ttac (map (fun x -> name_of x,pretype_of_type(type_of x)) vs) g
+      CONTEXT_common ttac (map (concl o snd) asms) c g
+
+    let CONTEXT_RULE r th = CONTEXT_common r (hyp th) (concl th) th
 
     let PARSES_IN_CONTEXT ttac ss =
       CONTEXT_TAC (fun env ->
@@ -108,7 +113,9 @@ module Pa :
     let SPEC_TAC (u,x) =
       PARSE_IN_CONTEXT (fun u' -> SPEC_TAC (u',force_type x (type_of u'))) u
 
-    let SPEC s th = SPEC (force_type s (type_of_forall (concl th))) th
+    let SPEC s th =
+      CONTEXT_RULE (fun env ->
+        SPEC (force_type ~env s (type_of_forall (concl th)))) th
 
     let SPECL tms th =
       try rev_itlist SPEC tms th with Failure _ -> failwith "SPECL"
